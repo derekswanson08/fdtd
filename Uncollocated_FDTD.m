@@ -13,23 +13,26 @@ figure('Position',[scrnsz(1) scrnsz(2) scrnsz(3) scrnsz(4)])
 ustep=@(t) 0.5*(sign(t)+1);
 pulse=@(t) ustep(t+.5) - ustep(t-.5);
 
-
-
 % Transmission Line Parameters
 R = 0;
 G = 0;
-L = @(m) 10e-9*(1 - ustep(m - 200)) + 20e-9*ustep(m - 200);
-C = @(m) 20e-9*(1 - ustep(m - 200)) + 10e-9*ustep(m - 200);
+C = @(m) 1e-9;
+L = @(m) 250e-9;
 
 % Simulation Parameters
-M = 500;  % Number of Nodes
-N = 2000; % Number of Time Steps
-Len = 10;
+M = 100;  % Number of Nodes
+N = 1000; % Number of Time Steps
+Len = 1;
 A = 1;
 
 % Boundary Conditions
 RS = 0;
 RL = 0;
+
+% Resonant Circuit At Termination
+RR = -31.417;
+LL = 10.132e-9;
+CC = 10e-12;
 
 % Wave Propegation Speed
 up = sqrt(1/L(1)/C(1));
@@ -44,17 +47,18 @@ dt = dz/up;
 z = -Len:dz:0;
 t = 0:dt:(N-1)*dt;
 
-% Sinusoidal Source
-f = 400e6;
-periods = 2;
-vg = A*sin(f*2*pi*t).*(1-ustep(t - 1/f*periods));
+% % Sinusoidal Source
+% f = 500e6;
+% periods = 2;
+% vg = A*sin(f*2*pi*t).*(1-ustep(t - 1/f*periods));
 
 % % Pulse Source
-% vg = 1-ustep(t - 10e-9);
+% vg = 1-ustep(t - 1e-9);
+% vg=A*vg;
 
-% % DC Source
-% vg = ones(length(t));
-% vg = vg*A;
+% DC Source
+vg = ones(length(t));
+vg = vg*A;
 
 % % Sawtooth Source
 % f = 400e7;
@@ -98,31 +102,30 @@ for n = 2:N
 
     % Update Currents
     for m = 1:M-1
-        %in(m) = dt/L*((v(m) - v(m+1))/dz - i(m)*R) + i(m);
         
-        LL = L(m);
-        in(m) = ((v(m) - v(m+1))/dz + i(m)*(-R/2 + LL/dt))/(R/2 + LL/dt);
+        in(m) = ((v(m) - v(m+1))/dz + i(m)*(-R/2 + L(m)/dt))/(R/2 + L(m)/dt);
+        
     end
-    
-
-    %vn(1) = vg(n);
-    
     
     % Update Voltages
     for m = 1:M-2
-        %vn(m+1) = dt/C*((in(m) - in(m+1))/dz - v(m+1)*G) + v(m+1);
+        
         vn(m+1) = ((in(m) - in(m+1))/dz + v(m+1)*(-G/2 + C(m)/dt))/(G/2 + C(m)/dt);
+    
     end
     
     vn(1) = (v(1)*(1/dz + G*RS/2 - C(m)*RS/dt) + 2*RS*in(1)/dz - vg(n-1)/dz - vg(n)/dz)/(-1/dz - G*RS/2 - C(m)*RS/dt);
         
-    % Boundary Condition at the termination
-    vn(M) = (v(M)*(RL*G/2 - RL*C(m)/dt + 1/dz) - 2*RL*in(M-1)/dz)/(-1/dz - RL*G/2 - RL*C(m)/dt);
+    % Resonant Circuit at Termination
+    a = 1/dz + RR*dt/LL/dz + RR*G/2;
+    b = 2*CC*RR/dt/dz + RR*C(m)/dt;
+    vn(M) = (v(M)*(a - b) - 2*in(M-1)*RR/dz)/(-a - b);
     
+    %vn(M) = (v(M)*(1/dz + G*RR/2 - C(m)*RR/dt) + 2*in(M-1)*RR/dz)/(-1/dz - G*RR/2 - C(m)*RR/dt);
+    %vn(M) = (v(M)*(RR*G/2 - RR*C(m)/dt + 1/dz) - 2*RR*in(M-1)/dz)/(-1/dz - RR*G/2 - RR*C(m)/dt);
     % Update arrays
     v = vn;
     i = in;
     
-end
-
+end 
 
