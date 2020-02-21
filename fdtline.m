@@ -8,25 +8,28 @@
 
 clear;
 
-ustep=@(t) 0.5*(sign(t)+1);
-pulse=@(t) ustep(t+.5) - ustep(t-.5);
-
 % Line inputs
 Len=1;%input('Length = ');
 M=100;%input('Nodes = ');
 dz=Len/(M-1);
 z=linspace(-Len,0,M);
 
+
+
+
+
 % Line parameters 
-C=1e-9;
-L=250e-9;
+C = 0:1:M-1;
+C = 1e-9 + 1e-9*C;
+L = 0:1:M-1;
+L = 100e-9 - 1e-9*L;
+L = L(1)/C(1)*C;
 R = 0;
 G = 0;
 A=1;%A = input('Amplitude = ');
-Z0 = sqrt(L/C);
 
 % Velocity calc
-up=1/sqrt(L*C);
+up=1/sqrt(L(1)*C(1));
 
 % Time increment and no. of steps
 dt=dz/up; %Courant condition: up*dt/dz <= 1
@@ -45,76 +48,70 @@ Rs = 0;%input('Rs = ');
 % display('  1 - 400MHz Sine Wave');
 % display('  2 - 2.5ns pulse');
 % display('  3 - DC');
-source = 6;%input('Enter a number 1-3: ');
+source = 2;%input('Enter a number 1-3: ');
 
 % Set up the voltage source
-f = 400e6;
-periods = 2;
 if(source == 1)
     % Sinusoidal
-    vg = A*sin(f*2*pi*t).*(1-ustep(t - 1/f*periods));
+    vg = A*sin(200e6*2*pi*t);
 elseif(source == 2)
     % Pulse
-    vg = 1-ustep(t - 2.5e-9);
-elseif(source==3)
+    vg = zeros(length(t));
+    tt = 0;
+    i = 1;
+    while(tt <= 2.5e-9)
+       vg(i) = A;
+       tt = tt + dt;
+       i = i + 1;
+    end
+else
     % DC
     vg = ones(length(t));
     vg = vg*A;
-elseif(source==4)
-    % sawtooth wave
-    vg = (A+A*sawtooth(f*2*pi*t)).*(1-ustep(t-1/f*periods));
-elseif(source==5)
-    % Triangle wave
-    vg = (A+A*sawtooth(f*2*pi*t,.5)).*(1-ustep(t-1/f*periods));
-elseif(source==6)
-    % Square wave
-    vg = (A*square(f*2*pi*t)).*(1-ustep(t-1/f*periods));
-else
-    error('invalid source option');
 end
 
 % Initial conditions
 v=zeros(1,M); i=zeros(1,M);
 vn=zeros(1,M); in=zeros(1,M);
 vp=zeros(1,M); ip=zeros(1,M);
-ii = zeros(1,M);
-vv = zeros(1,M);
 
 % Time loop t=0:dt:tmax
 for n=1:N-1
     
     % generate plots
     subplot(2,1,1);
-    plot(z,v)%,z,vv);
+    plot(z,v);
     axis([-Len,0,-2,2]);
     xlabel('distance (m)');
     ylabel('voltage (V)');
-    title(sprintf('t = %.3f ns',(n-1)*dt*1e9));
+    title(sprintf('t = %.3f ns',(n-2)*dt*1e9));
     subplot(2,1,2);
-    plot(z,i)%,z,ii);
+    plot(z,i);
     axis([-Len,0,-.3,.3]);
     xlabel('distance (m)');
     ylabel('current (A)');
+
     shg;
     
     % "Next" values @ z=-Len+dz:dz:0
     for m=2:M-1
         
-        vn(m)=(v(m+1)+v(m-1))/2-dt/C*(i(m+1)-i(m-1))/2/dz;
-	    in(m)=(i(m+1)+i(m-1))/2-dt/L*(v(m+1)-v(m-1))/2/dz;
-        
-%         in(m) = ip(m) + 2*dt/L*((v(m-1) - v(m+1))/2/dz - i(m)*R);
-%         vn(m) = vp(m) + 2*dt/C*((i(m-1) - i(m+1))/2/dz - v(m)*G);
+      vn(m)=(v(m+1)+v(m-1))/2-dt/C(m)*(i(m+1)-i(m-1))/2/dz;
+	  in(m)=(i(m+1)+i(m-1))/2-dt/L(m)*(v(m+1)-v(m-1))/2/dz;
 
     end
     
     % Boundary condition at the source
-    vn(1) = ((vg(n+1) - Rs*in(2))/dz + C*Rs/dt*v(1))/(1/dz + G*Rs + C*Rs/dt);
-    in(1) = ((vg(n+1) - vn(2))/dz + L*i(1)/dt)/(Rs/dz + R + L/dt);
+    vn(1) = ((vg(n+1) - Rs*in(2))/dz + C(m)*Rs/dt*v(1))/(1/dz + G*Rs + C(m)*Rs/dt);
+    in(1) = ((vg(n+1) - vn(2))/dz + L(1)*i(1)/dt)/(Rs/dz + R + L(1)/dt);
     
     % Boundary condition at the termination
-    vn(M) = (RL*in(M-1)/dz + RL*C/dt*v(M))/(1/dz + G*RL + C*RL/dt);
-    in(M) = (vn(M-1)/dz + L*i(M)/dt)/(RL/dz + R + L/dt);  
+    vn(M) = (RL*in(M-1)/dz + RL*C(m)/dt*v(M))/(1/dz + G*RL + C(m)*RL/dt);
+    in(M) = (vn(M-1)/dz + L(M)*i(M)/dt)/(RL/dz + R + L(M)/dt);
+
+%     in(M) =    ((-4*vn(M-1) + vn(M-2))/2/dz + L/2/dt*(-4*i(M) + ip(M)))/(-3*RL/2/dz - R - 3*L/2/dt);
+%     vn(M) = RL*((-4*in(M-1) + in(M-2))/2/dz + C/2/dt*(-4*v(M) + vp(M)))/(-3/2/dz - G*RL -3*C*RL/2/dt);
+
 
     % Updating arrays
     vp = v;
@@ -123,6 +120,3 @@ for n=1:N-1
     i=in;
     
 end
-
-
-
