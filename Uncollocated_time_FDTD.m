@@ -26,8 +26,8 @@ Len = 1;
 A = 1;
 
 % Boundary Conditions
-RS = sqrt(L/C);
-RL = 100;
+RS = 10;
+RL = sqrt(L/C)/100;
 
 % Wave Propegation Speed
 up = sqrt(1/L/C);
@@ -35,11 +35,12 @@ up = sqrt(1/L/C);
 % Distance between adjacent nodes
 dz = Len/(M-1);
 
+
 % "Magic" time step (Courant-Fredrichs-Lewy stability requirement)
 dt = dz/up;
 
 % z vector for plotting
-z = -Len:dz:0;
+z = linspace(-Len,0,2*M);
 t = 0:dt:(N-1)*dt;
 
 % % Sinusoidal Source
@@ -71,54 +72,49 @@ vg = 1-ustep(t - 2.5e-9);
 
 
 % Initial Conditions
-v = zeros(1,M);
-i = zeros(1,M-1);
-vn = zeros(1,M);
-in = zeros(1,M-1);
+v  = zeros(1,2*M);
+i  = zeros(1,2*M);
+vn = zeros(1,2*M);
+in = zeros(1,2*M);
 
-vg(1) = 0;
-
-for n = 2:N
+for n = 1:N
 
     % generate plots
     subplot(2,1,1);
-    plot(z,v)%,z,vv);
+    plot(z,v)
     axis([-Len,0,-2,2]);
     xlabel('distance (m)');
     ylabel('voltage (V)');
     title(sprintf('t = %.3f ns',(n-1)*dt*1e9));
     subplot(2,1,2);
-    plot(z(1:M-1)+dz/2,i)%,z,ii);
+    plot(z,i)
     axis([-Len,0,-.3,.3]);
     xlabel('distance (m)');
     ylabel('current (A)');
     shg;
-
-    % Update Currents
-    for m = 1:M-1
-        %in(m) = dt/L*((v(m) - v(m+1))/dz - i(m)*R) + i(m);
-        in(m) = ((v(m) - v(m+1))/dz + i(m)*(-R/2 + L/dt))/(R/2 + L/dt);
-    end
-    
-
-    %vn(1) = vg(n);
-    
     
     % Update Voltages
-    for m = 1:M-2
-        %vn(m+1) = dt/C*((in(m) - in(m+1))/dz - v(m+1)*G) + v(m+1);
-        vn(m+1) = ((in(m) - in(m+1))/dz + v(m+1)*(-G/2 + C/dt))/(G/2 + C/dt);
+    for m = 2:2*M-1
+        vn(m) = (v(m)*(C/dt - G/2) + (i(m-1) - i(m+1))/dz)/(C/dt + G/2);
     end
     
-    vn(1) = (v(1)*(1/dz + G*RS/2 - C*RS/dt) + 2*RS*in(1)/dz - vg(n-1)/dz - vg(n)/dz)/(-1/dz - G*RS/2 - C*RS/dt);
-        
-    % Boundary Condition at the termination
-    vn(M) = (v(M)*(RL*G/2 - RL*C/dt + 1/dz) - 2*RL*in(M-1)/dz)/(-1/dz - RL*G/2 - RL*C/dt);
+    % Boundary conditions
+    vn(1) = vg(n);
+    vn(2*M) = (-2*vn(2*M-1)*RL/dz + i(2*M)*(R*RL - 2*RL*L/dt))/(-2*RL/dz - 2*L/dt);
+    
+    % Update Currents
+    for m = 2:2*M-1
+        in(m) = (i(m)*(L/dt - R/2) + (vn(m-1) - vn(m+1))/dz)/(R/2 + L/dt);
+    end
+    
+    % Boundary Conditions
+    in(1) = in(2);
+    in(2*M) = (-2*in(2*M-1)/dz + vn(2*M)*(G - 2*C/dt))/(-2/dz - 2*C*RL/dt);
     
     % Update arrays
     v = vn;
     i = in;
-    
+
 end
 
 

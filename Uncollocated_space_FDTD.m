@@ -26,8 +26,8 @@ Len = 1;
 A = 1;
 
 % Boundary Conditions
-RS = sqrt(L/C);
-RL = 0;
+RS = 100;
+RL = sqrt(L/C);
 
 % Wave Propegation Speed
 up = sqrt(1/L/C);
@@ -42,13 +42,13 @@ dt = dz/up;
 z = -Len:dz:0;
 t = 0:dt:(N-1)*dt;
 
-% % Sinusoidal Source
-% f = 400e6;
-% periods = 2;
-% vg = A*sin(f*2*pi*t).*(1-ustep(t - 1/f*periods));
+% Sinusoidal Source
+f = 400e6;
+periods = 2;
+vg = A*sin(f*2*pi*t).*(1-ustep(t - 1/f*periods));
 
-% Pulse Source
-vg = 1-ustep(t - 2.5e-9);
+% % Pulse Source
+% vg = 1-ustep(t - 2.5e-9);
 
 % % DC Source
 % vg = ones(length(t));
@@ -109,7 +109,8 @@ for n = 1:N
     % Boundary Condition at the termination
     vn(M) = (v(M)*(RL*G/2 - RL*C/dt + 1/dz) - 2*RL*ia(M-1)/dz)/(-1/dz - RL*G/2 - RL*C/dt);
     vn(1) = (-C*v(1)*RS/dt - 2*vg(n)/dz + 2*in(1)*RS/dz)/(-2/dz - G*RS - RS*C/dt);
-    
+    %vn(1) = (-2*C*RS*va(1)/dz - 2*vg(n)/dz + 2*RS*in(1)/dz)/(-2/dz - 2*RS*C/dz - G*RS);
+   % vn(1) = ((vg(n) - va(1))/RS - ia(1) + C*dz*v(1)/2/dt)/(C*dz/2);
     
     % Update arrays
     v = va;
