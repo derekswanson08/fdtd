@@ -9,8 +9,8 @@
 clear;
 
 % Line inputs
-Len=input('Length = ');
-M=input('Nodes = ');
+Len=1;%input('Length = ');
+M=100;%input('Nodes = ');
 dz=Len/(M-1);
 z=linspace(-Len,0,M);
 
@@ -19,7 +19,7 @@ C=1e-9;
 L=250e-9;
 R = 0;
 G = 0;
-A = input('Amplitude = ');
+A=1;%A = input('Amplitude = ');
 
 % Velocity calc
 up=1/sqrt(L*C);
@@ -28,20 +28,20 @@ up=1/sqrt(L*C);
 dt=dz/up; %Courant condition: up*dt/dz <= 1
 
 % Number of time steps and time vector
-N=input('Time Steps = ');
+N=1000;%N=input('Time Steps = ');
 tmax=(N-1)*dt;
 t=linspace(0,tmax,N);
 
 % Prompt the user to enter the boundary condition
-RL = input('RL = ');
-Rs = input('Rs = ');
+RL = 1e90;%input('RL = ');
+Rs = 0;%input('Rs = ');
 
 % Prompt the user to select the voltage source
-display('Select voltage source:');
-display('  1 - 400MHz Sine Wave');
-display('  2 - 2.5ns pulse');
-display('  3 - DC');
-source = input('Enter a number 1-3: ');
+% display('Select voltage source:');
+% display('  1 - 400MHz Sine Wave');
+% display('  2 - 2.5ns pulse');
+% display('  3 - DC');
+source = 2;%input('Enter a number 1-3: ');
 
 % Set up the voltage source
 if(source == 1)
@@ -66,6 +66,7 @@ end
 % Initial conditions
 v=zeros(1,M); i=zeros(1,M);
 vn=zeros(1,M); in=zeros(1,M);
+vp=zeros(1,M); ip=zeros(1,M);
 
 % Time loop t=0:dt:tmax
 for n=1:N-1
@@ -84,15 +85,28 @@ for n=1:N-1
     ylabel('current (A)');
 %     subplot(3,1,3);
 %     plot(z,v./i);
-%     axis([-Len,0,-200,200]);
+%     axis([-Len,0,-2*Rs,2*Rs]);
 %     xlabel('distance (m)');
 %     ylabel('input impedance (ohm)');
     shg;
     
     % "Next" values @ z=-Len+dz:dz:0
     for m=2:M-1
-        vn(m)=(v(m+1)+v(m-1))/2-dt/C*(i(m+1)-i(m-1))/2/dz;
-	    in(m)=(i(m+1)+i(m-1))/2-dt/L*(v(m+1)-v(m-1))/2/dz;
+%       vn(m)=(v(m+1)+v(m-1))/2-dt/C*(i(m+1)-i(m-1))/2/dz;
+% 	  in(m)=(i(m+1)+i(m-1))/2-dt/L*(v(m+1)-v(m-1))/2/dz;
+        
+%          in(m) = ip(m) + 2*dt/L*((v(m-1) - v(m+1))/2/dz - i(m)*R);
+%          vn(m) = vp(m) + 2*dt/C*((i(m-1) - i(m+1))/2/dz - v(m)*G);
+
+%       vn(m) = v(m) + dt/C*((i(m-1) - i(m+1))/2/dz - G*v(m));
+%       in(m) = i(m) + dt/L*((v(m-1) - v(m+1))/2/dz - R*i(m));
+
+%      vn(m) = dt/C*((i(m) - i(m+1))/dz - G*v(m)) + v(m);
+%      in(m) = dt/L*((v(m) - v(m+1))/dz - R*i(m)) + i(m);
+
+
+
+
     end
     
     % Boundary condition at the source
@@ -100,14 +114,17 @@ for n=1:N-1
     in(1) = ((vg(n+1) - vn(2))/dz + L*i(1)/dt)/(Rs/dz + R + L/dt);
     
     % Boundary condition at the termination
-%      vn(M) = (RL*in(M-1)/dz + RL*C/dt*v(M))/(1/dz + G*RL + C*RL/dt);
-%      in(M) = (vn(M-1)/dz + L*i(M)/dt)/(RL/dz + R + L/dt);
-    vn(M) = (RL/2/dz*(-4*in(M-1) + in(M-2)) - RL*C/dt*v(M))/(-3/2/dz - RL*G - RL*C/dt);
-    in(M) = ((-4*vn(M-1) + vn(M-2))/2/dz - L/dt*i(M))/(-3*RL/2/dz - R - L/dt);
+    vn(M) = (RL*in(M-1)/dz + RL*C/dt*v(M))/(1/dz + G*RL + C*RL/dt);
+    in(M) = (vn(M-1)/dz + L*i(M)/dt)/(RL/dz + R + L/dt);
+
+%     in(M) =    ((-4*vn(M-1) + vn(M-2))/2/dz + L/2/dt*(-4*i(M) + ip(M)))/(-3*RL/2/dz - R - 3*L/2/dt);
+%     vn(M) = RL*((-4*in(M-1) + in(M-2))/2/dz + C/2/dt*(-4*v(M) + vp(M)))/(-3/2/dz - G*RL -3*C*RL/2/dt);
     
-    %pause
-    
+%pause;    
+
     % Updating arrays
+    vp = v;
+    ip = i;
     v=vn;
     i=in;
     
