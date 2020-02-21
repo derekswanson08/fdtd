@@ -37,7 +37,7 @@ tmax=(N-1)*dt;
 t=linspace(0,tmax,N);
 
 % Prompt the user to enter the boundary condition
-RL = 1e90;%input('RL = ');
+RL = 0;%input('RL = ');
 Rs = 0;%input('Rs = ');
 
 % Prompt the user to select the voltage source
@@ -45,26 +45,32 @@ Rs = 0;%input('Rs = ');
 % display('  1 - 400MHz Sine Wave');
 % display('  2 - 2.5ns pulse');
 % display('  3 - DC');
-source = 4;%input('Enter a number 1-3: ');
+source = 6;%input('Enter a number 1-3: ');
 
 % Set up the voltage source
+f = 400e6;
+periods = 2;
 if(source == 1)
     % Sinusoidal
-    f = input('f = ');
-    periods = input('periods = ');
     vg = A*sin(f*2*pi*t).*(1-ustep(t - 1/f*periods));
 elseif(source == 2)
     % Pulse
     vg = 1-ustep(t - 2.5e-9);
-elseif(source==3);
+elseif(source==3)
     % DC
     vg = ones(length(t));
     vg = vg*A;
+elseif(source==4)
+    % sawtooth wave
+    vg = (A+A*sawtooth(f*2*pi*t)).*(1-ustep(t-1/f*periods));
+elseif(source==5)
+    % Triangle wave
+    vg = (A+A*sawtooth(f*2*pi*t,.5)).*(1-ustep(t-1/f*periods));
+elseif(source==6)
+    % Square wave
+    vg = (A*square(f*2*pi*t)).*(1-ustep(t-1/f*periods));
 else
-    % sawtooth
-    f = input('f=');
-    periods = input('periods=');
-    vg = (A*sawtooth(f*2*pi*t)+A/2).*(1-ustep(t-1/f*periods));
+    error('invalid source option');
 end
 
 % Initial conditions
@@ -76,11 +82,6 @@ vv = zeros(1,M);
 
 % Time loop t=0:dt:tmax
 for n=1:N-1
-    
-%     for m = 2:M-1
-%         ii(m) = (i(m+1) + i(m-1))/2;
-%         vv(m) = (v(m+1) + v(m-1))/2;
-%     end
     
     % generate plots
     subplot(2,1,1);
@@ -99,11 +100,11 @@ for n=1:N-1
     % "Next" values @ z=-Len+dz:dz:0
     for m=2:M-1
         
-        vn(m)=ip(m)*Z0-dt/C*(i(m+1)-i(m-1))/2/dz;
-	    in(m)=vp(m)/Z0-dt/L*(v(m+1)-v(m-1))/2/dz;
+        vn(m)=(v(m+1)+v(m-1))/2-dt/C*(i(m+1)-i(m-1))/2/dz;
+	    in(m)=(i(m+1)+i(m-1))/2-dt/L*(v(m+1)-v(m-1))/2/dz;
         
-%          in(m) = ip(m) + 2*dt/L*((v(m-1) - v(m+1))/2/dz - (i(m-1)+i(m+1))*R/2);
-%          vn(m) = vp(m) + 2*dt/C*((i(m-1) - i(m+1))/2/dz - (v(m-1)+v(m+1))*G/2);
+%         in(m) = ip(m) + 2*dt/L*((v(m-1) - v(m+1))/2/dz - i(m)*R);
+%         vn(m) = vp(m) + 2*dt/C*((i(m-1) - i(m+1))/2/dz - v(m)*G);
 
     end
     
