@@ -12,25 +12,27 @@ figure('Position',[scrnsz(1) scrnsz(2) scrnsz(3) scrnsz(4)])
 
 ustep=@(t) 0.5*(sign(t)+1);
 pulse=@(t) ustep(t+.5) - ustep(t-.5);
+L = @(m) 100e-9*(1 - ustep(m - 500)) + 250e-9*ustep(m - 500);
+
 
 % Transmission Line Parameters
 R = 0;
 G = 0;
-L = 250e-9;
+%L = 250e-9;
 C = 1e-9;
 
 % Simulation Parameters
-M = 100;  % Number of Nodes
-N = 1000; % Number of Time Steps
-Len = 1;
+M = 1000;  % Number of Nodes
+N = 2000; % Number of Time Steps
+Len = 10;
 A = 1;
 
 % Boundary Conditions
-RS = sqrt(L/C);
-RL = 100;
+RS = 0;
+RL = 0;
 
 % Wave Propegation Speed
-up = sqrt(1/L/C);
+up = sqrt(1/L(1)/C);
 
 % Distance between adjacent nodes
 dz = Len/(M-1);
@@ -55,9 +57,9 @@ vg = 1-ustep(t - 2.5e-9);
 % vg = vg*A;
 
 % % Sawtooth Source
-% f = 400e6;
+% f = 400e7;
 % periods = 2;
-% vg = (A+A*sawtooth(f*2*pi*t)).*(1-ustep(t-1/f*periods));
+% vg = (A/2+A/2*sawtooth(f*2*pi*t)).*(1-ustep(t-1/f*periods));
 
 % % Triangle Wave Source
 % f = 400e6;
@@ -83,7 +85,7 @@ for n = 2:N
     % generate plots
     subplot(2,1,1);
     plot(z,v)%,z,vv);
-    axis([-Len,0,-2,2]);
+    axis([-Len,0,-1.5,1.5]);
     xlabel('distance (m)');
     ylabel('voltage (V)');
     title(sprintf('t = %.3f ns',(n-1)*dt*1e9));
@@ -97,7 +99,7 @@ for n = 2:N
     % Update Currents
     for m = 1:M-1
         %in(m) = dt/L*((v(m) - v(m+1))/dz - i(m)*R) + i(m);
-        in(m) = ((v(m) - v(m+1))/dz + i(m)*(-R/2 + L/dt))/(R/2 + L/dt);
+        in(m) = ((v(m) - v(m+1))/dz + i(m)*(-R/2 + L(m)/dt))/(R/2 + L(m)/dt);
     end
     
 
