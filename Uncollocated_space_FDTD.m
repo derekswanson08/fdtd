@@ -26,8 +26,8 @@ Len = 1;
 A = 1;
 
 % Boundary Conditions
-RS = 10;
-RL = 100;
+RS = sqrt(L/C);
+RL = 0;
 
 % Wave Propegation Speed
 up = sqrt(1/L/C);
@@ -73,6 +73,8 @@ vg = 1-ustep(t - 2.5e-9);
 % Initial Conditions
 v = zeros(1,M);
 i = zeros(1,M-1);
+va = zeros(1,M);
+ia = zeros(1,M-1);
 vn = zeros(1,M);
 in = zeros(1,M-1);
 
@@ -93,30 +95,29 @@ for n = 1:N
     ylabel('current (A)');
     shg;
 
-    % Update Currents
-    for m = 1:M-1
-        %in(m) = dt/L*((v(m) - v(m+1))/dz - i(m)*R) + i(m);
-        in(m) = ((v(m) - v(m+1))/dz + i(m)*(-R/2 + L/dt))/(R/2 + L/dt);
-    end
+    for k = 1:2
     
-
-    %vn(1) = vg(n);
-    
-    
-    % Update Voltages
     for m = 1:M-2
-        %vn(m+1) = dt/C*((in(m) - in(m+1))/dz - v(m+1)*G) + v(m+1);
-        vn(m+1) = ((in(m) - in(m+1))/dz + v(m+1)*(-G/2 + C/dt))/(G/2 + C/dt);
+        
+        vn(m+1) = dt/C*((ia(m) - ia(m+1))/dz - G*va(m+1)) + v(m+1);
+        in(m)   = dt/L*((va(m) - va(m+1))/dz - R*ia(m)) + i(m);
+        
     end
     
-    vn(1) = (v(1)*(1/dz + G*RS/2 - C*RS/dt) + 2*RS*in(1)/dz - vg(n)/dz - vg(n+1)/dz)/(-1/dz - G*RS/2 - C*RS/dt);
-        
+    in(M-1)   = dt/L*((va(M-1) - va(M))/dz - R*ia(M-1)) + i(M-1);
+    
     % Boundary Condition at the termination
-    vn(M) = (v(M)*(RL*G/2 - RL*C/dt + 1/dz) - 2*RL*in(M-1)/dz)/(-1/dz - RL*G/2 - RL*C/dt);
+    vn(M) = (v(M)*(RL*G/2 - RL*C/dt + 1/dz) - 2*RL*ia(M-1)/dz)/(-1/dz - RL*G/2 - RL*C/dt);
+    vn(1) = (-C*v(1)*RS/dt - 2*vg(n)/dz + 2*in(1)*RS/dz)/(-2/dz - G*RS - RS*C/dt);
+    
     
     % Update arrays
-    v = vn;
-    i = in;
+    v = va;
+    i = ia;
+    va = vn;
+    ia = in;
+    
+    end
     
 end
 
